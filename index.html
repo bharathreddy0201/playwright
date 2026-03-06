@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Test Suite Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f5f5f5;
+        }
+        
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .passed { color: #28a745; }
+        .failed { color: #dc3545; }
+        .skipped { color: #ffc107; }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .feature-header {
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            background: #f9f9f9;
+        }
+        
+        .feature-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .feature-tests {
+            display: flex;
+            gap: 10px;
+            font-size: 12px;
+        }
+        
+        .feature-tests span {
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .test-list {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .test-item-wrapper {
+            margin-bottom: 8px;
+        }
+        
+        .test-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .test-item.passed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .test-item.failed {
+            background: #f8d7da;
+            color: #721c24;
+            cursor: pointer;
+        }
+        
+        .test-item.failed:hover {
+            background: #f5c6cb;
+        }
+        
+        .test-item.skipped {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-icon {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .error-details {
+            display: none;
+            background: #fff;
+            border: 1px solid #dc3545;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #721c24;
+        }
+        
+        .error-details.expanded {
+            display: block;
+        }
+        
+        .error-section {
+            margin-bottom: 12px;
+        }
+        
+        .error-section-title {
+            font-weight: bold;
+            color: #dc3545;
+            margin-bottom: 5px;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        
+        .error-message {
+            background: #f8f9fa;
+            padding: 10px;
+            border-left: 3px solid #dc3545;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .error-stack {
+            background: #f8f9fa;
+            padding: 10px;
+            border-left: 3px solid #fd7e14;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            font-size: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .error-location {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+        
+        .toggle-error {
+            margin-left: auto;
+            cursor: pointer;
+            padding: 4px 8px;
+            background: #dc3545;
+            color: white;
+            border-radius: 3px;
+            font-size: 11px;
+            border: none;
+        }
+        
+        .toggle-error:hover {
+            background: #c82333;
+        }
+        
+        .run-info {
+            padding: 15px;
+            background: #f5f5f5;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 QA Test Suite Dashboard</h1>
+            <p style="color: #666; margin-top: 5px;">Test runs captured from GitHub Actions</p>
+            <button class="refresh-btn" onclick="fetchTestData()">🔄 Refresh Data</button>
+            
+            <div class="stats" id="statsContainer">
+                <div class="loading">Loading test data...</div>
+            </div>
+        </div>
+        
+        <div id="errorContainer"></div>
+        <div class="features-grid" id="featuresContainer">
+            <div class="loading">Fetching test results...</div>
+        </div>
+    </div>
+
+    <script>
+        // Map test file paths to feature categories
+        const featureMapping = {
+            'auth': {
+                name: '🔐 Authentication',
+                icon: '🔐'
+            },
+            'products': {
+                name: '📦 Products',
+                icon: '📦'
+            },
+            'performance': {
+                name: '⚡ Performance',
+                icon: '⚡'
+            },
+            'checkout': {
+                name: '💳 Checkout',
+                icon: '💳'
+            },
+            'login': {
+                name: '🔑 Login',
+                icon: '🔑'
+            }
+        };
+
+        async function fetchTestData() {
+            try {
+                const container = document.getElementById('featuresContainer');
+                container.innerHTML = '<div class="loading">Loading test data...</div>';
+                
+                // Fetch test results from uploaded artifacts
+                const testData = await loadLocalTestData();
+                
+                if (!testData) {
+                    showError('No test results found. Make sure the workflow has run and generated results.');
+                    return;
+                }
+                
+                displayDashboard(testData);
+            } catch (error) {
+                showError(`Error loading test data: ${error.message}`);
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadLocalTestData() {
+            try {
+                // Try to load test results from local test-results directory
+                // In a real scenario, you'd fetch from GitHub API or a deployed artifact
+                const response = await fetch('./test-results.json');
+                if (!response.ok) {
+                    return generateMockData();
+                }
+                return await response.json();
+            } catch (e) {
+                // Return mock data for demonstration
+                return generateMockData();
+            }
+        }
+
+        function generateMockData() {
+            // Mock data structure for demonstration with error details
+            return {
+                timestamp: new Date().toISOString(),
+                total: 25,
+                passed: 22,
+                failed: 2,
+                skipped: 1,
+                duration: 185,
+                features: {
+                    auth: {
+                        name: 'Authentication',
+                        tests: [
+                            { name: 'Login with valid credentials', status: 'passed', duration: 5, error: null },
+                            { name: 'Login with invalid credentials', status: 'passed', duration: 4, error: null },
+                            { name: 'Login with empty fields', status: 'passed', duration: 3, error: null },
+                            { 
+                                name: 'Logout functionality', 
+                                status: 'failed', 
+                                duration: 6,
+                                error: {
+                                    message: 'Timeout 30000ms exceeded. Waiting for locator(\'button:has-text("Logout")\') to be visible',
+                                    stack: 'Error: Timeout 30000ms exceeded. Waiting for locator...\n  at Page._waitForFunctionInternal (page.ts:456)\n  at runTest (logout-functionality.spec.ts:45)',
+                                    location: {
+                                        file: 'tests/auth/logout-functionality.spec.ts',
+                                        line: 45
+                                    },
+                                    stderr: ''
+                                }
+                            }
+                        ]
+                    },
+                    products: {
+                        name: 'Products',
+                        tests: [
+                            { name: 'Inventory display', status: 'passed', duration: 7, error: null },
+                            { name: 'Product sorting', status: 'passed', duration: 5, error: null },
+                            { name: 'Product detail navigation', status: 'passed', duration: 4, error: null },
+                            { name: 'Product filtering', status: 'skipped', duration: 0, error: null }
+                        ]
+                    },
+                    performance: {
+                        name: 'Performance',
+                        tests: [
+                            { name: 'Page load times', status: 'passed', duration: 15, error: null },
+                            { name: 'Image loading', status: 'passed', duration: 12, error: null },
+                            { 
+                                name: 'Memory usage', 
+                                status: 'failed', 
+                                duration: 18,
+                                error: {
+                                    message: 'expect(actual).toBeLessThan(expected)\n\nActual: 145.2\nExpected: < 100',
+                                    stack: 'AssertionError: Expected 145.2 to be less than 100\n  at Context.<anonymous> (memory-usage.spec.ts:32)',
+                                    location: {
+                                        file: 'tests/performance/memory-usage.spec.ts',
+                                        line: 32
+                                    },
+                                    stderr: ''
+                                }
+                            },
+                            { name: 'Database query performance', status: 'passed', duration: 10, error: null }
+                        ]
+                    },
+                    checkout: {
+                        name: 'Checkout',
+                        tests: [
+                            { name: 'Add to cart flow', status: 'passed', duration: 8, error: null },
+                            { name: 'Checkout flow', status: 'passed', duration: 25, error: null },
+                            { name: 'Payment processing', status: 'passed', duration: 12, error: null }
+                        ]
+                    },
+                    login: {
+                        name: 'Login',
+                        tests: [
+                            { name: 'Login with standard user', status: 'passed', duration: 6, error: null },
+                            { name: 'Login with locked user', status: 'passed', duration: 5, error: null },
+                            { name: 'Login with problem user', status: 'passed', duration: 6, error: null }
+                        ]
+                    }
+                }
+            };
+        }
+
+        function displayDashboard(data) {
+            displayStats(data);
+            displayFeatures(data);
+        }
+
+        function displayStats(data) {
+            const statsContainer = document.getElementById('statsContainer');
+            const passPercentage = ((data.passed / data.total) * 100).toFixed(1);
+            
+            statsContainer.innerHTML = `
+                <div class="stat-card">
+                    <div class="number passed">${data.total}</div>
+                    <div class="label">Total Tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number passed">${data.passed}</div>
+                    <div class="label">Passed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number failed">${data.failed}</div>
+                    <div class="label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number skipped">${data.skipped}</div>
+                    <div class="label">Skipped</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" style="color: #667eea;">${passPercentage}%</div>
+                    <div class="label">Success Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" style="color: #764ba2;">${data.duration}s</div>
+                    <div class="label">Duration</div>
+                </div>
+            `;
+        }
+
+        function displayFeatures(data) {
+            const container = document.getElementById('featuresContainer');
+            container.innerHTML = '';
+            
+            Object.entries(data.features).forEach(([featureKey, feature]) => {
+                const card = createFeatureCard(featureKey, feature);
+                container.appendChild(card);
+            });
+        }
+
+        function createFeatureCard(featureKey, feature) {
+            const card = document.createElement('div');
+            card.className = 'feature-card';
+            
+            const passed = feature.tests.filter(t => t.status === 'passed').length;
+            const failed = feature.tests.filter(t => t.status === 'failed').length;
+            const skipped = feature.tests.filter(t => t.status === 'skipped').length;
+            
+            const testItemsHtml = feature.tests.map((test, idx) => `
+                <div class="test-item-wrapper">
+                    <div class="test-item ${test.status}" onclick="toggleErrorDetails(this)">
+                        <span class="status-icon">${getIcon(test.status)}</span>
+                        <span>${test.name}</span>
+                        ${test.duration > 0 ? `<span style="margin-left: auto; opacity: 0.7;">${test.duration}s</span>` : ''}
+                        ${test.error ? '<span style="margin-left: 8px; background: #dc3545; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">Details</span>' : ''}
+                    </div>
+                    ${test.error ? `
+                        <div class="error-details" data-test-index="${idx}">
+                            <div class="error-section">
+                                <div class="error-section-title">❌ Error Message</div>
+                                <div class="error-message">${escapeHtml(test.error.message)}</div>
+                            </div>
+                            ${test.error.location ? `
+                                <div class="error-section">
+                                    <div class="error-section-title">📍 Location</div>
+                                    <div class="error-location">
+                                        ${escapeHtml(test.error.location.file)}:${test.error.location.line}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${test.error.stack ? `
+                                <div class="error-section">
+                                    <div class="error-section-title">📋 Stack Trace</div>
+                                    <div class="error-stack">${escapeHtml(test.error.stack)}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+            
+            card.innerHTML = `
+                <div class="feature-header">
+                    <div class="feature-name">${featureKey.toUpperCase()}</div>
+                    <div class="feature-tests">
+                        <span style="background: #d4edda; color: #155724;">✓ ${passed}</span>
+                        ${failed > 0 ? `<span style="background: #f8d7da; color: #721c24;">✗ ${failed}</span>` : ''}
+                        ${skipped > 0 ? `<span style="background: #fff3cd; color: #856404;">⊝ ${skipped}</span>` : ''}
+                    </div>
+                </div>
+                <div class="test-list">
+                    ${testItemsHtml}
+                </div>
+                <div class="run-info">
+                    ${feature.tests.length} tests • Last updated ${new Date().toLocaleTimeString()}
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        function toggleErrorDetails(element) {
+            const wrapper = element.parentElement;
+            const errorDetails = wrapper.querySelector('.error-details');
+            
+            if (errorDetails) {
+                errorDetails.classList.toggle('expanded');
+                element.style.backgroundColor = errorDetails.classList.contains('expanded') ? '#f5c6cb' : '';
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getIcon(status) {
+            switch(status) {
+                case 'passed': return '✓';
+                case 'failed': return '✗';
+                case 'skipped': return '⊝';
+                default: return '○';
+            }
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', fetchTestData);
+    </script>
+</body>
+</html>
