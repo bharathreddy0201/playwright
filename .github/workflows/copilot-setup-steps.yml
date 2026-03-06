@@ -11,6 +11,7 @@ on:
 
 jobs:
   copilot-setup-steps:
+    if: false
     runs-on: ubuntu-latest
 
     permissions:
