@@ -52,18 +52,32 @@ function parseTestResults(testResultsDir) {
     // List all test result folders
     const folders = fs.readdirSync(testResultsDir);
     
-    console.log(`Found ${folders.length} test result folders`);
-
-    folders.forEach(folder => {
+    console.log(`Found ${folders.length} items in test-results directory`);
+    
+    // Filter to only directories
+    const testFolders = folders.filter(folder => {
       const folderPath = path.join(testResultsDir, folder);
+      return fs.lstatSync(folderPath).isDirectory();
+    });
+    
+    console.log(`Found ${testFolders.length} test result folders (directories only)`);
+    
+    if (testFolders.length === 0) {
+      console.log('No test result directories found, creating sample data');
+      return createSampleReportWithFailures();
+    }
+
+    testFolders.forEach(folder => {
       
-      // Parse folder name: e.g., "auth-login-locked-user-Auth-e8746--Login-with-locked-out-user-chromium"
+      console.log(`Processing folder: ${folder}`);
+      
+      // Extract feature and test name from folder name
+      // Example: "auth-login-locked-user-Auth-e8746--Login-with-locked-out-user-chromium"
       const parts = folder.split('-');
       const browser = parts[parts.length - 1]; // chromium, firefox, webkit
       
-      // Extract feature and test name from folder name
-      const featureMatch = folder.match(/^([^-]+)-([^-]+-[^-]+)/);
-      const feature = featureMatch ? featureMatch[1] : 'general';
+      // Extract feature - usually first part before test name
+      const feature = parts[0] || 'general';
       const testName = folder.replace(`${feature}-`, '').replace(`-${browser}`, '');
 
       if (!features[feature]) {
