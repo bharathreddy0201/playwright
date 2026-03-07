@@ -29,12 +29,21 @@ jobs:
         if: always()
         run: |
           echo "Checking for report.json..."
+          echo "Files in root:"
+          ls -la *.json 2>/dev/null || echo "No JSON files in root"
+          echo ""
+          echo "Files in playwright-report:"
           ls -la playwright-report/ || echo "playwright-report directory not found"
+          echo ""
+          if [ -f "report.json" ]; then
+            echo "✓ report.json found in root - moving to playwright-report/"
+            mv report.json playwright-report/report.json
+          fi
           if [ -f "playwright-report/report.json" ]; then
-            echo "✓ report.json found"
+            echo "✓ report.json now in playwright-report/"
             wc -l playwright-report/report.json
           else
-            echo "✗ report.json NOT found"
+            echo "✗ report.json still NOT found"
           fi
       
       - name: Generate Test Report

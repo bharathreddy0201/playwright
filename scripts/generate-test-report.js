@@ -9,21 +9,35 @@ const path = require('path');
 
 function generateTestReport() {
   try {
-    // Try to read Playwright JSON report
-    const reportJsonPath = path.join(process.cwd(), 'playwright-report', 'report.json');
+    // Try to read Playwright JSON report from multiple possible locations
+    let reportJsonPath = path.join(process.cwd(), 'report.json');
+    let reportPath = null;
     
-    console.log(`Looking for report at: ${reportJsonPath}`);
+    // Check different possible locations for report.json
+    const possiblePaths = [
+      path.join(process.cwd(), 'report.json'),
+      path.join(process.cwd(), 'playwright-report', 'report.json')
+    ];
+    
+    for (const possiblePath of possiblePaths) {
+      if (fs.existsSync(possiblePath)) {
+        reportPath = possiblePath;
+        break;
+      }
+    }
+    
+    console.log(`Looking for report in:`, possiblePaths);
     
     let testData = null;
-    if (fs.existsSync(reportJsonPath)) {
-      console.log('✓ Parsing Playwright JSON report...');
-      const fileContent = fs.readFileSync(reportJsonPath, 'utf-8');
+    if (reportPath) {
+      console.log(`✓ Found report at: ${reportPath}`);
+      const fileContent = fs.readFileSync(reportPath, 'utf-8');
       const report = JSON.parse(fileContent);
-      console.log(`Found ${report.suites?.length || 0} test suites`);
-      testData = parsePlaywrightReport(reportJsonPath);
+      console.log(`Found ${report.suites?.length || 0} test suites with ${report.stats?.expected || 0} total tests`);
+      testData = parsePlaywrightReport(reportPath);
     } else {
-      console.warn('⚠️  No Playwright JSON report found at:', reportJsonPath);
-      console.log('Available files:');
+      console.warn('⚠️  No Playwright JSON report found');
+      console.log('Available files in playwright-report:');
       try {
         const files = fs.readdirSync(path.join(process.cwd(), 'playwright-report'));
         files.forEach(f => console.log(`  - ${f}`));
