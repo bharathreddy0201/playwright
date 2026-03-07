@@ -9,7 +9,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [['html', { outputFolder: 'playwright-report' }], ['@ortoni/reporter', { outputFolder: 'ortoni-report' }]],
   use: {
     trace: 'on-first-retry',
     testIdAttribute: 'data-test',

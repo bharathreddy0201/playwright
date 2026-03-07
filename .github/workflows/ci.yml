@@ -22,14 +22,14 @@ jobs:
       - run: npx playwright install
       
       - name: Run Playwright Tests
-        run: npx playwright test --reporter=html
+        run: npx playwright test
         continue-on-error: true
       
       - name: Generate Test Report
         run: node scripts/generate-test-report.js
         if: always()
       
-      - name: Upload Test Results
+      - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -37,9 +37,28 @@ jobs:
           path: playwright-report/
           retention-days: 30
       
-      - name: Deploy Dashboard to GitHub Pages
+      - name: Upload Ortoni Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ortoni-report
+          path: ortoni-report/
+          retention-days: 30
+      
+      - name: Prepare GitHub Pages Deployment
+        if: github.ref == 'refs/heads/main' && always()
+        run: |
+          mkdir -p gh-pages
+          # Copy dashboard hub
+          cp -r dashboard/* gh-pages/ || true
+          # Copy test reports
+          cp -r playwright-report gh-pages/playwright-report 2>/dev/null || true
+          cp -r ortoni-report gh-pages/ortoni-report 2>/dev/null || true
+          echo "✓ Reports prepared for deployment"
+      
+      - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main' && always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dashboard
+          publish_dir: ./gh-pages
