@@ -25,26 +25,20 @@ jobs:
         run: npx playwright test --reporter=html,json
         continue-on-error: true
       
-      - name: Debug - Check for report.json
+      - name: Debug - List all generated files
         if: always()
         run: |
-          echo "Checking for report.json..."
-          echo "Files in root:"
-          ls -la *.json 2>/dev/null || echo "No JSON files in root"
+          echo "=== Files in root directory ==="
+          find . -maxdepth 1 -type f -name "*.json" -o -name "*.xml" | head -20
           echo ""
-          echo "Files in playwright-report:"
-          ls -la playwright-report/ || echo "playwright-report directory not found"
+          echo "=== Files in playwright-report ==="
+          ls -la playwright-report/ || echo "Not found"
           echo ""
-          if [ -f "report.json" ]; then
-            echo "✓ report.json found in root - moving to playwright-report/"
-            mv report.json playwright-report/report.json
-          fi
-          if [ -f "playwright-report/report.json" ]; then
-            echo "✓ report.json now in playwright-report/"
-            wc -l playwright-report/report.json
-          else
-            echo "✗ report.json still NOT found"
-          fi
+          echo "=== Searching for report.json anywhere ==="
+          find . -name "report.json" -type f 2>/dev/null | head -10
+          echo ""
+          echo "=== Searching for junit.xml anywhere ==="
+          find . -name "junit.xml" -type f 2>/dev/null | head -10
       
       - name: Generate Test Report
         run: node scripts/generate-test-report.js
