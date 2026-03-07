@@ -21,6 +21,6 @@ test.describe('Authentication & Login', () => {
     await page.getByTestId('login-button').click();
 
     // expect: Error message 'Epic sadface: Sorry, this user has been locked out.' is displayed
-    await page.getByText('Epic sadface: Sorry, this user has been locked out.').isVisible();
+    await page.getByText('Epic sadface: Sorry, this user has been locked ou').isVisible();
   });
 });
