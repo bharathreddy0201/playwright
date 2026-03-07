@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 // specs/saucedemo-comprehensive-test-plan.md
 // seed: tests/seed.spec.ts
@@ -21,6 +21,9 @@ test.describe('Authentication & Login', () => {
     await page.getByTestId('login-button').click();
 
     // expect: Error message 'Epic sadface: Sorry, this user has been locked out.' is displayed
-    await page.getByText('Epic sadface: Sorry, this user has been locked ou').isVisible();
+    await page.getByText('Epic sadface: Sorry, this user has been locked out.').isVisible();
+    await expect(page.getByText('Epic sadface: Sorry, this user has been locked out.')).toHaveText(
+      'Epic sadface: Sorry, this user has been locked ou'
+    );
   });
-});
+})
