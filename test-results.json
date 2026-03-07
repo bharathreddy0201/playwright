@@ -1,14 +1,33 @@
 {
-  "timestamp": "2026-03-07T01:35:33.606Z",
-  "total": 0,
-  "passed": 0,
-  "failed": 0,
-  "skipped": 0,
-  "duration": 0,
+  "timestamp": "2026-03-07T18:31:59.795Z",
+  "total": 25,
+  "passed": 22,
+  "failed": 2,
+  "skipped": 1,
+  "duration": 185,
   "features": {
     "auth": {
-      "name": "Auth",
-      "tests": []
+      "name": "Authentication",
+      "tests": [
+        {
+          "name": "Login with valid credentials",
+          "status": "passed",
+          "duration": 5,
+          "error": null
+        },
+        {
+          "name": "Login with invalid credentials",
+          "status": "passed",
+          "duration": 4,
+          "error": null
+        },
+        {
+          "name": "Login with empty fields",
+          "status": "passed",
+          "duration": 3,
+          "error": null
+        }
+      ]
     }
   }
 }
