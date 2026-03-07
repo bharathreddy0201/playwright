@@ -11,6 +11,6 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/node": "^25.3.2",
-    "@ortoni/reporter": "^1.5.0"
+    "ortoni-report": "^4.0.0"
   }
 }
