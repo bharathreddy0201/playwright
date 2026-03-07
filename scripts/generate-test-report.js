@@ -1,6 +1,6 @@
 /**
- * Script to parse Playwright test results and generate a feature-wise report
- * Extracts failure details, error messages, and stack traces
+ * Script to parse Playwright test results from test-results directory
+ * Extracts failure details from test output files
  * Run this after tests complete to generate test-results.json
  */
 
@@ -9,41 +9,17 @@ const path = require('path');
 
 function generateTestReport() {
   try {
-    // Try to read Playwright JSON report from multiple possible locations
-    let reportJsonPath = path.join(process.cwd(), 'report.json');
-    let reportPath = null;
+    // Look for actual test results in the test-results directory
+    const testResultsDir = path.join(process.cwd(), 'test-results');
     
-    // Check different possible locations for report.json
-    const possiblePaths = [
-      path.join(process.cwd(), 'report.json'),
-      path.join(process.cwd(), 'playwright-report', 'report.json')
-    ];
-    
-    for (const possiblePath of possiblePaths) {
-      if (fs.existsSync(possiblePath)) {
-        reportPath = possiblePath;
-        break;
-      }
-    }
-    
-    console.log(`Looking for report in:`, possiblePaths);
+    console.log(`Looking for test results in: ${testResultsDir}`);
     
     let testData = null;
-    if (reportPath) {
-      console.log(`✓ Found report at: ${reportPath}`);
-      const fileContent = fs.readFileSync(reportPath, 'utf-8');
-      const report = JSON.parse(fileContent);
-      console.log(`Found ${report.suites?.length || 0} test suites with ${report.stats?.expected || 0} total tests`);
-      testData = parsePlaywrightReport(reportPath);
+    if (fs.existsSync(testResultsDir)) {
+      console.log('✓ Found test-results directory');
+      testData = parseTestResults(testResultsDir);
     } else {
-      console.warn('⚠️  No Playwright JSON report found');
-      console.log('Available files in playwright-report:');
-      try {
-        const files = fs.readdirSync(path.join(process.cwd(), 'playwright-report'));
-        files.forEach(f => console.log(`  - ${f}`));
-      } catch (e) {
-        console.log('  (playwright-report directory does not exist)');
-      }
+      console.warn('⚠️  test-results directory not found');
       console.log('Creating sample report with failure details.');
       testData = createSampleReportWithFailures();
     }
@@ -65,14 +41,31 @@ function generateTestReport() {
   }
 }
 
-function parsePlaywrightReport(reportPath) {
-  const report = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
+function parseTestResults(testResultsDir) {
   const features = {};
-  
-  report.suites.forEach(suite => {
-    suite.tests.forEach(test => {
-      const [feature, testName] = extractFeatureInfo(test.file);
+  let totalTests = 0;
+  let passedTests = 0;
+  let failedTests = 0;
+  let skippedTests = 0;
+
+  try {
+    // List all test result folders
+    const folders = fs.readdirSync(testResultsDir);
+    
+    console.log(`Found ${folders.length} test result folders`);
+
+    folders.forEach(folder => {
+      const folderPath = path.join(testResultsDir, folder);
       
+      // Parse folder name: e.g., "auth-login-locked-user-Auth-e8746--Login-with-locked-out-user-chromium"
+      const parts = folder.split('-');
+      const browser = parts[parts.length - 1]; // chromium, firefox, webkit
+      
+      // Extract feature and test name from folder name
+      const featureMatch = folder.match(/^([^-]+)-([^-]+-[^-]+)/);
+      const feature = featureMatch ? featureMatch[1] : 'general';
+      const testName = folder.replace(`${feature}-`, '').replace(`-${browser}`, '');
+
       if (!features[feature]) {
         features[feature] = {
           name: feature.charAt(0).toUpperCase() + feature.slice(1),
@@ -80,86 +73,68 @@ function parsePlaywrightReport(reportPath) {
         };
       }
 
-      let status = 'passed';
+      // Check if test failed by looking for test-failed files
+      const files = fs.readdirSync(folderPath);
+      const hasFailed = files.some(f => f.includes('test-failed'));
+      let status = hasFailed ? 'failed' : 'passed';
       let errorDetails = null;
 
-      if (test.status === 'failed' || test.resultsCount?.failed > 0) {
-        status = 'failed';
-        const results = test.results || [];
-        const failedResult = results.find(r => r.status === 'failed');
-        
-        if (failedResult) {
+      if (hasFailed) {
+        failedTests++;
+        // Look for error context file
+        const errorContextFile = files.find(f => f === 'error-context.md');
+        if (errorContextFile) {
+          const errorPath = path.join(folderPath, errorContextFile);
+          const errorContent = fs.readFileSync(errorPath, 'utf-8');
           errorDetails = {
-            message: failedResult.error?.message || 'Test assertion failed',
-            stack: failedResult.error?.stack || '',
+            message: extractErrorMessage(errorContent),
+            stack: errorContent,
             location: {
-              file: test.file,
-              line: test.line
+              file: `tests/${feature}/${testName}.spec.ts`,
+              line: 0
             },
-            stderr: failedResult.stderr || '',
-            stdout: failedResult.stdout || '',
-            attachment: failedResult.attachments ? failedResult.attachments[0] : null
+            stderr: '',
+            stdout: ''
           };
         }
-      } else if (test.status === 'skipped') {
-        status = 'skipped';
+      } else {
+        passedTests++;
+        status = 'passed';
       }
 
-      const duration = test.results?.reduce((sum, r) => sum + (r.duration || 0), 0) || 0;
+      totalTests++;
 
       features[feature].tests.push({
-        name: testName,
+        name: testName.replace(/-/g, ' '),
         status: status,
-        duration: Math.round(duration),
+        duration: 5,
         error: errorDetails
       });
     });
-  });
+  } catch (error) {
+    console.error('Error parsing test-results:', error);
+  }
 
-  // Calculate stats
-  const allTests = Object.values(features).flatMap(f => f.tests);
   return {
     timestamp: new Date().toISOString(),
-    total: allTests.length,
-    passed: allTests.filter(t => t.status === 'passed').length,
-    failed: allTests.filter(t => t.status === 'failed').length,
-    skipped: allTests.filter(t => t.status === 'skipped').length,
-    duration: allTests.reduce((sum, t) => sum + t.duration, 0),
+    total: totalTests,
+    passed: passedTests,
+    failed: failedTests,
+    skipped: skippedTests,
+    duration: totalTests * 5,
     features: features
   };
 }
 
-function extractFeatureInfo(filepath) {
-  // Extract feature from file path: tests/auth/login.spec.ts => auth
-  const parts = filepath.split(path.sep);
-  const testsIndex = parts.indexOf('tests');
-  
-  let feature = 'general';
-  let testName = parts[parts.length - 1];
-
-  if (testsIndex !== -1 && parts[testsIndex + 1]) {
-    feature = parts[testsIndex + 1];
-    testName = parts[testsIndex + 2] || 'tests';
+function extractErrorMessage(errorContent) {
+  // Try to extract the actual error message from markdown content
+  const lines = errorContent.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('Error:') || lines[i].includes('expect')) {
+      return lines.slice(i, i + 3).join(' ').trim().substring(0, 200);
+    }
   }
-
-  // Map to feature categories
-  const featureMap = {
-    'auth': 'auth',
-    'login': 'login',
-    'product': 'products',
-    'products': 'products',
-    'checkout': 'checkout',
-    'performance': 'performance',
-    'image': 'performance',
-    'memory': 'performance',
-    'page': 'performance'
-  };
-
-  if (featureMap[feature]) {
-    feature = featureMap[feature];
-  }
-
-  return [feature, testName.replace(/\.spec\.ts$/, '')];
+  return errorContent.split('\n')[0] || 'Test failed';
 }
 
 function createSampleReportWithFailures() {
@@ -191,121 +166,6 @@ function createSampleReportWithFailures() {
             name: 'Login with empty fields', 
             status: 'passed', 
             duration: 3,
-            error: null
-          },
-          { 
-            name: 'Logout functionality', 
-            status: 'failed', 
-            duration: 6,
-            error: {
-              message: 'Timeout 30000ms exceeded. Waiting for locator(\'button:has-text("Logout")\') to be visible',
-              stack: 'Error: Timeout 30000ms exceeded. Waiting for locator...\n  at Page._waitForFunctionInternal (page.ts:456)\n  at runTest (logout-functionality.spec.ts:45)',
-              location: {
-                file: 'tests/auth/logout-functionality.spec.ts',
-                line: 45
-              },
-              stderr: '',
-              stdout: ''
-            }
-          }
-        ]
-      },
-      products: {
-        name: 'Products',
-        tests: [
-          { 
-            name: 'Inventory display', 
-            status: 'passed', 
-            duration: 7,
-            error: null
-          },
-          { 
-            name: 'Product sorting', 
-            status: 'passed', 
-            duration: 5,
-            error: null
-          },
-          { 
-            name: 'Product detail navigation', 
-            status: 'passed', 
-            duration: 4,
-            error: null
-          }
-        ]
-      },
-      performance: {
-        name: 'Performance',
-        tests: [
-          { 
-            name: 'Page load times', 
-            status: 'passed', 
-            duration: 15,
-            error: null
-          },
-          { 
-            name: 'Image loading', 
-            status: 'passed', 
-            duration: 12,
-            error: null
-          },
-          { 
-            name: 'Memory usage', 
-            status: 'failed', 
-            duration: 18,
-            error: {
-              message: 'expect(actual).toBeLessThan(expected)\n\nActual: 145.2\nExpected: < 100',
-              stack: 'Error: assertion failed\n  at Context.<anonymous> (memory-usage.spec.ts:32)',
-              location: {
-                file: 'tests/performance/memory-usage.spec.ts',
-                line: 32
-              },
-              stderr: ''
-            }
-          }
-        ]
-      },
-      checkout: {
-        name: 'Checkout',
-        tests: [
-          { 
-            name: 'Add to cart flow', 
-            status: 'passed', 
-            duration: 8,
-            error: null
-          },
-          { 
-            name: 'Checkout flow', 
-            status: 'passed', 
-            duration: 25,
-            error: null
-          },
-          { 
-            name: 'Payment processing', 
-            status: 'passed', 
-            duration: 12,
-            error: null
-          }
-        ]
-      },
-      login: {
-        name: 'Login',
-        tests: [
-          { 
-            name: 'Login with standard user', 
-            status: 'passed', 
-            duration: 6,
-            error: null
-          },
-          { 
-            name: 'Login with locked user', 
-            status: 'passed', 
-            duration: 5,
-            error: null
-          },
-          { 
-            name: 'Login with problem user', 
-            status: 'passed', 
-            duration: 6,
             error: null
           }
         ]

@@ -22,23 +22,8 @@ jobs:
       - run: npx playwright install
       
       - name: Run Playwright Tests
-        run: npx playwright test --reporter=html,json
+        run: npx playwright test --reporter=html
         continue-on-error: true
-      
-      - name: Debug - List all generated files
-        if: always()
-        run: |
-          echo "=== Files in root directory ==="
-          find . -maxdepth 1 -type f -name "*.json" -o -name "*.xml" | head -20
-          echo ""
-          echo "=== Files in playwright-report ==="
-          ls -la playwright-report/ || echo "Not found"
-          echo ""
-          echo "=== Searching for report.json anywhere ==="
-          find . -name "report.json" -type f 2>/dev/null | head -10
-          echo ""
-          echo "=== Searching for junit.xml anywhere ==="
-          find . -name "junit.xml" -type f 2>/dev/null | head -10
       
       - name: Generate Test Report
         run: node scripts/generate-test-report.js

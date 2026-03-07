@@ -9,11 +9,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: [
-    ['html'],
-    ['json', { outputFile: './report.json' }],
-    ['junit', { outputFile: './junit.xml' }]
-  ],
+  reporter: 'html',
   use: {
     trace: 'on-first-retry',
     testIdAttribute: 'data-test',
