@@ -12,12 +12,25 @@ function generateTestReport() {
     // Try to read Playwright JSON report
     const reportJsonPath = path.join(process.cwd(), 'playwright-report', 'report.json');
     
+    console.log(`Looking for report at: ${reportJsonPath}`);
+    
     let testData = null;
     if (fs.existsSync(reportJsonPath)) {
-      console.log('Parsing Playwright JSON report...');
+      console.log('✓ Parsing Playwright JSON report...');
+      const fileContent = fs.readFileSync(reportJsonPath, 'utf-8');
+      const report = JSON.parse(fileContent);
+      console.log(`Found ${report.suites?.length || 0} test suites`);
       testData = parsePlaywrightReport(reportJsonPath);
     } else {
-      console.log('No Playwright JSON report found. Creating sample report with failure details.');
+      console.warn('⚠️  No Playwright JSON report found at:', reportJsonPath);
+      console.log('Available files:');
+      try {
+        const files = fs.readdirSync(path.join(process.cwd(), 'playwright-report'));
+        files.forEach(f => console.log(`  - ${f}`));
+      } catch (e) {
+        console.log('  (playwright-report directory does not exist)');
+      }
+      console.log('Creating sample report with failure details.');
       testData = createSampleReportWithFailures();
     }
 

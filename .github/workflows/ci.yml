@@ -25,6 +25,18 @@ jobs:
         run: npx playwright test --reporter=html,json
         continue-on-error: true
       
+      - name: Debug - Check for report.json
+        if: always()
+        run: |
+          echo "Checking for report.json..."
+          ls -la playwright-report/ || echo "playwright-report directory not found"
+          if [ -f "playwright-report/report.json" ]; then
+            echo "✓ report.json found"
+            wc -l playwright-report/report.json
+          else
+            echo "✗ report.json NOT found"
+          fi
+      
       - name: Generate Test Report
         run: node scripts/generate-test-report.js
         if: always()
